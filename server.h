@@ -10,6 +10,7 @@
 
 #define ROOM_SIZE 100
 #define BUFFER_SIZE 1024
+#define RECV_BUF_SIZE 400
 #define PORT 55888
 
 using namespace std;
