@@ -1,7 +1,8 @@
 #include "server.h"
 
 int cur_people = 0;
-vector<int> fd_group(ROOM_SIZE, 0); //客户端的socketfd, 100个元素，fds[0]~fds[99]
+unordered_set<int> fd_group;
+// vector<int> fd_group(ROOM_SIZE, 0); //客户端的socketfd, 100个元素，fds[0]~fds[99]
 
 int main() {
     int sockfd = init();
@@ -39,28 +40,23 @@ void service(int& sockfd) {
             cout << "客户端连接出错..." << endl;
             continue;
         }
-        for (int i = 0; i < ROOM_SIZE; i++) {
-            if (fd_group[i] == 0) {
-                //记录客户端的socket
-                fd_group[i] = client_fd;
-                cur_people++;
-                cout << "【socket文件描述符" << client_fd << "已创建】" << endl;
-                //有客户端连接之后，启动线程给此客户服务
-                pthread_t tid;
-                int err = pthread_create(&tid, 0, service_thread, &client_fd);
-                if (err != 0) {
-                    perror("【创建进程失败】");
-                }
-                void* tret;
-                err = pthread_join(tid, &tret);
-                if (err != 0) {
-                    perror("【加入进程失败】");
-                }
-                cout << "线程ID = " << tid << "返回码" << (long)tret << endl;
-                break;
-            }
+        if (fd_group.find(client_fd) == fd_group.end()) {
+            fd_group.insert(client_fd);
+            cout << "【socket文件描述符" << client_fd << "已创建】" << endl;
+            //有客户端连接之后，启动线程给此客户服务
+            pthread_t tid;
+            int err = pthread_create(&tid, 0, service_thread, &client_fd);
+            // if (err != 0) {
+            //     perror("【创建进程失败】");
+            // }
+            // void* tret;
+            // err = pthread_join(tid, &tret);
+            // if (err != 0) {
+            //     perror("【加入进程失败】");
+            // }
+            // cout << "线程ID = " << tid << "返回码" << (long)tret << endl;
         }
-        if (ROOM_SIZE < cur_people) {
+        if (ROOM_SIZE < fd_group.size()) {
             char str[] = "对不起，聊天室已经满了!";
             send(client_fd, str, strlen(str), 0);
             cout << "【聊天室已满，关闭socket文件描述符" << client_fd << "】" << endl;
@@ -70,11 +66,9 @@ void service(int& sockfd) {
 }
 
 void SendMsgToAll(char* msg) {
-    for (int i = 0; i < ROOM_SIZE; i++) {
-        if (fd_group[i] != 0) {
-            cout << "【发送至socket文件描述符" << fd_group[i] << "】" << endl;
-            send(fd_group[i], msg, strlen(msg), 0);
-        }
+    for (auto it = fd_group.begin(); it != fd_group.end(); it++) {
+        cout << "【发送至socket文件描述符" << *it << "】" << endl;
+        send(*it, msg, strlen(msg), 0);
     }
 }
 
@@ -87,15 +81,8 @@ void* service_thread(void* arg) {
         SendMsgToAll(recv_buf);
         memset(recv_buf, 0, sizeof(recv_buf)); // 下一次接收前清空缓冲区
     }
-    int i;
-    for (i = 0; i < ROOM_SIZE; i++) {
-        if (client_fd == fd_group[i]) {
-            fd_group[i] = 0;
-            cur_people--;
-            break;
-        }
-    }
+    fd_group.erase(client_fd);
     close(client_fd);
     cout << "【socket文件描述符" << client_fd << "已关闭】" << endl;
-    pthread_exit(reinterpret_cast<void*>(i));
+    pthread_exit(reinterpret_cast<void*>(0));
 }
