@@ -3,10 +3,10 @@ LIBS = -lpthread
 all: server client
 
 server: server.cpp
-	$(CC) -o server server.cpp $(LIBS)
+	$(CC) -o $@ $< $(LIBS)
 
 client: client.cpp
-	$(CC) -o client client.cpp $(LIBS)
+	$(CC) -o $@ $< $(LIBS)
 
 clean:
 	rm server client
