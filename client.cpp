@@ -26,7 +26,6 @@ void InitialClient() {
 }
 
 void StartService() {
-    // FILE *stream;
     pthread_t tid;
     // void *recv_thread(void *);
     pthread_create(&tid, 0, recv_thread, 0);
@@ -52,13 +51,12 @@ void StartService() {
 }
 
 void* recv_thread(void *p) {
-    char buf[1024] = {};
-    int len;
-    while ((len = recv(sockfd, buf, sizeof(buf), 0)) > 0) {
+    while (1) {
+        char buf[1024] = {}; // ********
+        if ( recv(sockfd, buf, sizeof(buf), 0) <= 0) {
+            return nullptr;
+        }   
         cout << buf << endl;
-    }
-    if ( len < 0) {
-        return nullptr;
     }
 }
 
