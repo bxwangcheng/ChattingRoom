@@ -51,13 +51,12 @@ void StartService() {
 }
 
 void* recv_thread(void *p) {
-    while (1) {
-        char buf[1024] = {}; // ********
-        if ( recv(sockfd, buf, sizeof(buf), 0) <= 0) {
-            return nullptr;
-        }   
-        cout << buf << endl;
+    char recv_buf[BUFFER_SIZE] = {};
+    while (recv(sockfd, recv_buf, sizeof(recv_buf), 0) > 0) {
+        cout << recv_buf << endl;
+        memset(recv_buf, 0, sizeof(recv_buf));
     }
+    return nullptr;
 }
 
 void getTimeStr(char* p) {
