@@ -1,4 +1,5 @@
 #include <vector>
+#include <stdio.h>
 #include <iostream>
 #include <string.h>
 #include <stdlib.h>
@@ -7,6 +8,8 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <pthread.h>
+#include <unordered_map>
+#include <unordered_set>
 
 #define ROOM_SIZE 100
 #define BUFFER_SIZE 1024
@@ -15,7 +18,7 @@
 
 using namespace std;
 
-void init();
-void service();
+int init();
+void service(int& sockfd);
 void SendMsgToAll(char* msg);
 void* service_thread(void* p);

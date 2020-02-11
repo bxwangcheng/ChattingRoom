@@ -1,8 +1,6 @@
 #include "server.h"
 
-int cur_people = 0;
 unordered_set<int> fd_group;
-// vector<int> fd_group(ROOM_SIZE, 0); //客户端的socketfd, 100个元素，fds[0]~fds[99]
 
 int main() {
     int sockfd = init();
