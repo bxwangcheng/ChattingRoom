@@ -1,13 +1,14 @@
 #include "client.h"
 
 int sockfd; //客户端socket
-typedef struct sockaddr SA;
-char name[30];
+struct login_info {
+    char id[30]; //发送者ID
+    char passwd[30]; //接收者ID
+};
+
 
 int main() {
     InitialClient();
-    cout << "请输入您的名字：" << endl;
-    scanf("%s", name);
     StartService();
     return 0;
 }
@@ -18,7 +19,7 @@ void InitialClient() {
     addr.sin_family = AF_INET;
     addr.sin_port = PORT;
     addr.sin_addr.s_addr = INADDR_ANY;
-    if (connect(sockfd, (SA *)&addr, sizeof(addr)) == -1) {
+    if (connect(sockfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
         perror("无法连接到服务器");
         exit(-1);
     }
@@ -26,26 +27,43 @@ void InitialClient() {
 }
 
 void StartService() {
+    char notic_buf[100];
+    char input_buf[BUFFER_SIZE - 32];
+    char send_buf[BUFFER_SIZE];
+    char recv_buf[BUFFER_SIZE];
+    login_info info;
     pthread_t tid;
-    // void *recv_thread(void *);
     pthread_create(&tid, 0, recv_thread, 0);
-    char buf2[100] = {};
-    sprintf(buf2, "%s进入了聊天室", name);
-    send(sockfd, buf2, strlen(buf2), 0);
+    cout << "请输入用户名：" << endl;
+    cin >> info.id;
+    cout << "请输入密码：" << endl;
+    cin >> info.passwd;
+    memcpy(send_buf, &info, sizeof(info));
+    send(sockfd, send_buf, strlen(send_buf), 0);
+    memset(send_buf, 0, sizeof(send_buf));
+    recv(sockfd, recv_buf, sizeof(recv_buf), 0);
+    cout << "【" << recv_buf << "】" << endl;
+    if (strcmp(recv_buf, "deny") == 0) {
+        cout << "密码错误" << endl;
+        close(sockfd);
+        return;
+    }
+    sprintf(notic_buf, "%s进入了聊天室", info.id);
+    send(sockfd, notic_buf, strlen(notic_buf), 0);
     while (1) {
-        char buf[100] = {};
-        scanf("%s", buf);
-        char msg[131] = {};
-        getTimeStr(msg);
-        sprintf(msg, "%s%s:\n%s", msg, name, buf);
-        if (strcmp(buf, "/QUIT") == 0)
-        {
-            memset(buf2, 0, sizeof(buf2));
-            sprintf(buf2, "%s退出了聊天室", name);
-            send(sockfd, buf2, strlen(buf2), 0);
+        cin.getline(input_buf, sizeof(input_buf));
+        if (strcmp(input_buf, "/QUIT") == 0) {
+            sprintf(notic_buf, "%s退出了聊天室", info.id);
+            send(sockfd, notic_buf, strlen(notic_buf), 0);
             break;
         }
-        send(sockfd, msg, strlen(msg), 0);
+        while (strlen(input_buf)) {
+            getTimeStr(send_buf);
+            sprintf(send_buf, "%s%s:\n%s", send_buf, info.id, input_buf);
+            send(sockfd, send_buf, strlen(send_buf), 0);
+            memset(input_buf, 0, sizeof(input_buf));
+            memset(send_buf, 0, sizeof(send_buf));
+        }
     }
     close(sockfd);
 }
