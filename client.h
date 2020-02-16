@@ -14,7 +14,7 @@
 
 using namespace std;
 
-void InitialClient();
-void StartService();
+int InitialClient();
+void StartService(int sockfd);
 void getTimeStr(char* p);
 void* recv_thread(void* p);

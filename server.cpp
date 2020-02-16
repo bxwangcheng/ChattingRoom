@@ -3,11 +3,6 @@
 unordered_set<int> fd_group;
 unordered_map<string, string> id_passwd;
 
-struct login_info {
-    char id[30]; //发送者ID
-    char passwd[30]; //接收者ID
-};
-
 int main() {
     int sockfd = init();
     service(sockfd);
@@ -81,36 +76,6 @@ void* service_thread(void* arg) {
     cout << "【线程ID = " << pthread_self() << " 已创建】" << endl;
     char recv_buf[4096] = {};
     char send_buf[4096] = {};
-    struct login_info info;
-    memset(&info, 0, sizeof(info));
-    while (1) {
-        recv(client_fd, recv_buf, sizeof(recv_buf), 0);
-        memcpy(&info, recv_buf, sizeof(recv_buf));
-        string id = info.id;
-        string passwd = info.passwd;
-        cout << info.id << endl;
-        cout << info.passwd << endl;
-
-        while(1);
-        if (id_passwd.find(info.id) == id_passwd.end()) {
-            id_passwd.insert(pair<string, string>(id, passwd));
-            sprintf(send_buf, "accept");
-            send(client_fd, send_buf, strlen(send_buf), 0);
-            break;
-        }else {
-            if (id_passwd[info.passwd] == passwd) {
-                sprintf(send_buf, "accept");
-                send(client_fd, send_buf, strlen(send_buf), 0);
-                break;
-            } else{
-                sprintf(send_buf, "deny");
-                send(client_fd, send_buf, strlen(send_buf), 0);
-            }
-        }
-        memset(send_buf, 0, sizeof(send_buf));
-        memset(recv_buf, 0, sizeof(recv_buf));
-        memset(&info, 0, sizeof(info));
-    }
     int recv_len = 0;
     while ((recv_len = recv(client_fd, recv_buf, sizeof(recv_buf), 0)) > 0) { // fd有可能一次性接受不完，需要循环接收
         SendMsgToAll(recv_buf);

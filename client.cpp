@@ -1,20 +1,13 @@
 #include "client.h"
 
-int sockfd; //客户端socket
-struct login_info {
-    char id[30]; //发送者ID
-    char passwd[30]; //接收者ID
-};
-
-
 int main() {
-    InitialClient();
-    StartService();
+    int sockfd = InitialClient();
+    StartService(sockfd);
     return 0;
 }
 
-void InitialClient() {
-    sockfd = socket(PF_INET, SOCK_STREAM, 0);
+int InitialClient() {
+    int sockfd = socket(PF_INET, SOCK_STREAM, 0);
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;
     addr.sin_port = PORT;
@@ -24,42 +17,31 @@ void InitialClient() {
         exit(-1);
     }
     printf("客户端启动成功\n");
+    return sockfd;
 }
 
-void StartService() {
+void StartService(int sockfd) {
     char notic_buf[100];
     char input_buf[BUFFER_SIZE - 32];
     char send_buf[BUFFER_SIZE];
     char recv_buf[BUFFER_SIZE];
-    login_info info;
+    char name[30];
     pthread_t tid;
-    pthread_create(&tid, 0, recv_thread, 0);
+    pthread_create(&tid, 0, recv_thread, (void*)&sockfd);
     cout << "请输入用户名：" << endl;
-    cin >> info.id;
-    cout << "请输入密码：" << endl;
-    cin >> info.passwd;
-    memcpy(send_buf, &info, sizeof(info));
-    send(sockfd, send_buf, strlen(send_buf), 0);
-    memset(send_buf, 0, sizeof(send_buf));
-    recv(sockfd, recv_buf, sizeof(recv_buf), 0);
-    cout << "【" << recv_buf << "】" << endl;
-    if (strcmp(recv_buf, "deny") == 0) {
-        cout << "密码错误" << endl;
-        close(sockfd);
-        return;
-    }
-    sprintf(notic_buf, "%s进入了聊天室", info.id);
+    cin >> name;
+    sprintf(notic_buf, "%s进入了聊天室", name);
     send(sockfd, notic_buf, strlen(notic_buf), 0);
     while (1) {
         cin.getline(input_buf, sizeof(input_buf));
         if (strcmp(input_buf, "/QUIT") == 0) {
-            sprintf(notic_buf, "%s退出了聊天室", info.id);
+            sprintf(notic_buf, "%s退出了聊天室", name);
             send(sockfd, notic_buf, strlen(notic_buf), 0);
             break;
         }
         while (strlen(input_buf)) {
             getTimeStr(send_buf);
-            sprintf(send_buf, "%s%s:\n%s", send_buf, info.id, input_buf);
+            sprintf(send_buf, "%s%s:\n%s", send_buf, name, input_buf);
             send(sockfd, send_buf, strlen(send_buf), 0);
             memset(input_buf, 0, sizeof(input_buf));
             memset(send_buf, 0, sizeof(send_buf));
@@ -69,6 +51,7 @@ void StartService() {
 }
 
 void* recv_thread(void *p) {
+    int sockfd = *(int *)p;
     char recv_buf[BUFFER_SIZE] = {};
     while (recv(sockfd, recv_buf, sizeof(recv_buf), 0) > 0) {
         cout << recv_buf << endl;
